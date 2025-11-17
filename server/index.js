@@ -1,31 +1,57 @@
-var express=require('express')
-var cors=require('cors')
-var {connect}=require("mongoose")
-require ("dotenv").config()
-var upload=require("express-fileupload")
+// server/index.js
 
-var Routes=require("./routes/Routes")
-var {notFound,errorHandler}=require("./middleware/errorMiddleware")
+const express = require('express');
+const cors = require('cors');
+const { connect } = require("mongoose");
+require("dotenv").config();
+const upload = require("express-fileupload");
 
+const Routes = require("./routes/Routes");
+const { notFound, errorHandler } = require("./middleware/errorMiddleware");
 
-var app =express()
-// app.use(express.json({extended:true}))
-app.use(express.json())
-app.use(express.urlencoded({extended:true}))
-app.use(cors({credentials:true,origin:["http://localhost:3000"]}))
+const app = express();
 
-app.use(upload())
+// ================== CORS CONFIG ==================
+const allowedOrigins = [
+  "http://localhost:3000",
+  "https://my-online-voting-system-project.vercel.app"
+];
 
-app.use('/api',Routes)
+app.use(cors({
+  origin: function(origin, callback){
+    // allow requests with no origin (like Postman)
+    if(!origin) return callback(null, true);
+    if(allowedOrigins.indexOf(origin) === -1){
+      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+  allowedHeaders: ["Content-Type", "Authorization"]
+}));
+// =================================================
 
-app.use(notFound)
-app.use(errorHandler)
+// Body parsers
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// uVSTA3q1K9kFJihe
-const PORT = process.env.PORT || 5000
+// File upload
+app.use(upload());
+
+// Routes
+app.use('/api', Routes);
+
+// Error handling middleware
+app.use(notFound);
+app.use(errorHandler);
+
+// Start server
+const PORT = process.env.PORT || 5000;
 
 connect(process.env.MONGO_URL)
-	.then(() => {
-		app.listen(PORT, () => console.log(`server started on port ${PORT}`))
-	})
-	.catch(err => console.log(err))
+  .then(() => {
+    app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
+  })
+  .catch(err => console.log(err));
